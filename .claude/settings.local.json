@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(dir \"D:\\Vaidya\")",
+      "Bash(npm create:*)",
+      "Bash(npm install:*)",
+      "Bash(npx tailwindcss:*)",
+      "Bash(npx:*)",
+      "Bash(node_modules.bintailwindcss init -p)",
+      "Bash(\"./node_modules/.bin/tailwindcss\" init -p)",
+      "Bash(dir \"D:\\Vaidya\\mediconnect\\node_modules\\.bin\")",
+      "Bash(cat:*)",
+      "Bash(dir \"D:\\Vaidya\\mediconnect\\src\" /b /s)",
+      "Bash(dir \"D:\\Vaidya\\mediconnect\\src\\pages\" /b)",
+      "Bash(node -e:*)",
+      "Bash(node scripts/run-migration.mjs:*)",
+      "Bash(dir \"D:\\Vaidya\\mediconnect\\src\" /s /b /a:d)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

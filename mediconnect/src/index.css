@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: oklch(0.55 0.2 264);
+  --color-primary-foreground: oklch(0.985 0 0);
+  --color-secondary: oklch(0.96 0.01 264);
+  --color-secondary-foreground: oklch(0.21 0.04 264);
+  --color-muted: oklch(0.96 0.01 264);
+  --color-muted-foreground: oklch(0.55 0.02 264);
+  --color-accent: oklch(0.96 0.01 264);
+  --color-accent-foreground: oklch(0.21 0.04 264);
+  --color-destructive: oklch(0.63 0.22 29);
+  --color-destructive-foreground: oklch(0.985 0 0);
+  --color-border: oklch(0.91 0.01 264);
+  --color-input: oklch(0.91 0.01 264);
+  --color-ring: oklch(0.55 0.2 264);
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.13 0.03 264);
+  --color-card: oklch(1 0 0);
+  --color-card-foreground: oklch(0.13 0.03 264);
+  --color-popover: oklch(1 0 0);
+  --color-popover-foreground: oklch(0.13 0.03 264);
+  --color-sidebar: oklch(0.21 0.04 264);
+  --color-sidebar-foreground: oklch(0.985 0 0);
+  --color-sidebar-accent: oklch(0.28 0.05 264);
+  --color-sidebar-border: oklch(0.28 0.05 264);
+  --radius: 0.5rem;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+  }
+}
