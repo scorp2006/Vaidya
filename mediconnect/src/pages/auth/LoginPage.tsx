@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { useNavigate, Link } from 'react-router-dom'
 import { Stethoscope, Mail, Lock, Loader2, AlertCircle } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import { supabase } from '@/lib/supabase'
 
 const loginSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Enter a valid email address'),
@@ -28,12 +29,29 @@ export function LoginPage() {
 
   async function onSubmit(data: LoginFormData) {
     setServerError(null)
-    const { error } = await signIn(data.email, data.password)
-    if (error) {
-      setServerError(error.message ?? 'Invalid email or password. Please try again.')
+    const { data: { user }, error: signInError } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    })
+
+    if (signInError || !user) {
+      setServerError(signInError?.message ?? 'Invalid email or password. Please try again.')
       return
     }
-    navigate('/hms/dashboard', { replace: true })
+
+    // Check if super admin
+    const { data: superAdmin } = await supabase
+      .from('super_admins')
+      .select('role')
+      .eq('user_id', user.id)
+      .eq('is_active', true)
+      .maybeSingle()
+
+    if (superAdmin) {
+      navigate('/admin/dashboard', { replace: true })
+    } else {
+      navigate('/hms/dashboard', { replace: true })
+    }
   }
 
   return (
