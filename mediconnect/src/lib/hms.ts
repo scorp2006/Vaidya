@@ -1,5 +1,5 @@
 import { supabase } from './supabase'
-import { startOfDay, endOfDay, format, addDays } from 'date-fns'
+import { format, addDays } from 'date-fns'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -121,8 +121,6 @@ export interface DoctorPerformanceRow {
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 
 export async function getHmsDashboard(hospitalId: string): Promise<DashboardData> {
-  const todayStart = format(startOfDay(new Date()), "yyyy-MM-dd'T'HH:mm:ssxxx")
-  const todayEnd = format(endOfDay(new Date()), "yyyy-MM-dd'T'HH:mm:ssxxx")
   const todayDate = format(new Date(), 'yyyy-MM-dd')
 
   const [doctorsResult, appointmentsResult, patientsResult, queueResult] = await Promise.all([
@@ -586,23 +584,23 @@ export async function completeAppointment(appointmentId: string): Promise<void> 
 // ─── Analytics ────────────────────────────────────────────────────────────────
 
 export async function getHmsAnalytics(hospitalId: string): Promise<AnalyticsRow[]> {
+  const thirtyDaysAgo = format(addDays(new Date(), -30), 'yyyy-MM-dd')
+
   const { data, error } = await supabase
     .from('booking_analytics')
-    .select(
-      'date, total_bookings, total_revenue, completed_appointments, cancelled_appointments'
-    )
+    .select('date, total_bookings, total_revenue, completed_appointments, cancelled_appointments')
     .eq('hospital_id', hospitalId)
-    .order('date', { ascending: false })
-    .limit(12)
+    .gte('date', thirtyDaysAgo)
+    .order('date', { ascending: true })
 
   if (error) throw error
 
   return (data ?? []).map(row => ({
     date: row.date,
-    total_bookings: row.total_bookings,
-    total_revenue: row.total_revenue,
-    completed_appointments: row.completed_appointments,
-    cancelled_appointments: row.cancelled_appointments,
+    total_bookings: row.total_bookings ?? 0,
+    total_revenue: row.total_revenue ?? 0,
+    completed_appointments: row.completed_appointments ?? 0,
+    cancelled_appointments: row.cancelled_appointments ?? 0,
   }))
 }
 

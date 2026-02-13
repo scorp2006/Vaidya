@@ -1,10 +1,23 @@
 import type { ExtractedIntent } from './types.ts'
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!
+const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY')!
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
+
+// Fast model for intent extraction (structured JSON, low latency)
+const INTENT_MODEL = 'llama-3.1-8b-instant'
+// Better model for multilingual translation
+const TRANSLATE_MODEL = 'llama-3.3-70b-versatile'
+
+function groqHeaders() {
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${GROQ_API_KEY}`,
+  }
+}
 
 /**
- * Uses Claude to extract structured intent from a user's WhatsApp message.
- * Designed to be cheap: small prompt, max_tokens 200, Haiku model.
+ * Uses Groq (Llama 3.1 8B) to extract structured intent from a WhatsApp message.
+ * Returns a structured JSON object describing the user's intent.
  */
 export async function extractIntent(
   userMessage: string,
@@ -35,34 +48,32 @@ Rules:
 - Specialties: cardiology, dentistry, orthopedics, dermatology, gynecology, pediatrics, ENT, ophthalmology, neurology, psychiatry, general physician, etc.`
 
   const messages = [
-    ...conversationHistory.slice(-4), // last 4 turns for context
+    { role: 'system' as const, content: systemPrompt },
+    ...conversationHistory.slice(-4),
     { role: 'user' as const, content: userMessage },
   ]
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: groqHeaders(),
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 200,
-        system: systemPrompt,
+        model: INTENT_MODEL,
         messages,
+        max_tokens: 200,
+        temperature: 0.1,  // low temp for consistent structured output
+        response_format: { type: 'json_object' },
       }),
     })
 
     if (!response.ok) {
       const err = await response.text()
-      console.error('Claude API error:', err)
+      console.error('Groq API error:', err)
       return { intent: 'unclear', raw_text: userMessage }
     }
 
     const data = await response.json()
-    const content = data.content?.[0]?.text?.trim()
+    const content = data.choices?.[0]?.message?.content?.trim()
 
     if (!content) return { intent: 'unclear', raw_text: userMessage }
 
@@ -76,60 +87,58 @@ Rules:
 }
 
 /**
- * Detects the language of a message using Claude.
+ * Detects the language of a message.
  */
 export async function detectLanguage(message: string): Promise<string> {
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: groqHeaders(),
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
-        max_tokens: 20,
-        messages: [{
-          role: 'user',
-          content: `Detect the language. Reply with ONLY one word: English, Hindi, Telugu, Tamil, Kannada, or Other.\n\nMessage: "${message}"`,
-        }],
+        model: INTENT_MODEL,
+        messages: [
+          {
+            role: 'user',
+            content: `Detect the language. Reply with ONLY one word: English, Hindi, Telugu, Tamil, Kannada, or Other.\n\nMessage: "${message}"`,
+          },
+        ],
+        max_tokens: 10,
+        temperature: 0.0,
       }),
     })
 
     const data = await response.json()
-    return data.content?.[0]?.text?.trim() ?? 'English'
+    return data.choices?.[0]?.message?.content?.trim() ?? 'English'
   } catch {
     return 'English'
   }
 }
 
 /**
- * Translates a message to the target language.
+ * Translates a message to the target language using Llama 70B for quality.
  */
 export async function translateMessage(message: string, targetLanguage: string): Promise<string> {
   if (targetLanguage === 'English') return message
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
+      headers: groqHeaders(),
       body: JSON.stringify({
-        model: 'claude-haiku-4-5',
+        model: TRANSLATE_MODEL,
+        messages: [
+          {
+            role: 'user',
+            content: `Translate this message to ${targetLanguage}. Keep emoji, numbers, WhatsApp formatting (*bold*, _italic_). Return ONLY the translation.\n\n"${message}"`,
+          },
+        ],
         max_tokens: 600,
-        messages: [{
-          role: 'user',
-          content: `Translate this message to ${targetLanguage}. Keep emoji, numbers, and formatting. Return ONLY the translation.\n\n"${message}"`,
-        }],
+        temperature: 0.3,
       }),
     })
 
     const data = await response.json()
-    return data.content?.[0]?.text?.trim() ?? message
+    return data.choices?.[0]?.message?.content?.trim() ?? message
   } catch {
     return message
   }

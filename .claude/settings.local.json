@@ -16,7 +16,8 @@
       "Bash(dir \"D:\\Vaidya\\mediconnect\\src\\pages\" /b)",
       "Bash(node -e:*)",
       "Bash(node scripts/run-migration.mjs:*)",
-      "Bash(dir \"D:\\Vaidya\\mediconnect\\src\" /s /b /a:d)"
+      "Bash(dir \"D:\\Vaidya\\mediconnect\\src\" /s /b /a:d)",
+      "Bash(npm run build:*)"
     ],
     "deny": [],
     "ask": []

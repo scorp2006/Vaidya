@@ -46,3 +46,9 @@ verify_jwt = false   # Twilio doesn't send JWT, we verify Twilio signature ourse
 
 [functions.send-reminders]
 verify_jwt = true
+
+[functions.create-hospital-admin]
+verify_jwt = false   # validates JWT manually to support both service role and super admin
+
+[functions.regenerate-slots]
+verify_jwt = false   # called by pg_cron with service role key

@@ -104,7 +104,7 @@ export async function getMonthlyStats(): Promise<MonthlyStat[]> {
 
   const { data, error } = await supabase
     .from('booking_analytics')
-    .select('date, total_bookings, total_revenue, hospital_id')
+    .select('*')
     .gte('date', twelveMonthsAgo)
     .order('date', { ascending: false })
 
@@ -370,31 +370,33 @@ export interface CreateHospitalAdminData {
 }
 
 export async function createHospitalAdmin(data: CreateHospitalAdminData) {
-  // Sign up the user via Supabase auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
-    email: data.email,
-    password: data.password,
-  })
+  // Calls the Edge Function which uses service role to create the auth user
+  // and insert the hospital_admin record atomically
+  const { data: sessionData } = await supabase.auth.getSession()
+  const token = sessionData?.session?.access_token
+  if (!token) throw new Error('Not authenticated')
 
-  if (authError) throw authError
-  if (!authData.user) throw new Error('User creation failed: no user returned')
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-hospital-admin`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        hospitalId: data.hospitalId,
+        email: data.email,
+        name: data.name,
+        password: data.password,
+        role: 'admin',
+      }),
+    }
+  )
 
-  // Insert the hospital_admin record
-  const { data: admin, error: adminError } = await supabase
-    .from('hospital_admins')
-    .insert({
-      hospital_id: data.hospitalId,
-      user_id: authData.user.id,
-      email: data.email,
-      name: data.name,
-      role: 'admin' as const,
-      is_active: true,
-    })
-    .select()
-    .single()
-
-  if (adminError) throw adminError
-  return admin
+  const result = await res.json()
+  if (!result.success) throw new Error(result.error ?? 'Failed to create admin')
+  return result.admin
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────
