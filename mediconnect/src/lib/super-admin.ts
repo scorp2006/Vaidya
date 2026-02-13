@@ -371,29 +371,44 @@ export interface CreateHospitalAdminData {
 }
 
 export async function createHospitalAdmin(data: CreateHospitalAdminData) {
+  console.log('[createHospitalAdmin] Starting...')
+  console.log('[createHospitalAdmin] Input data:', data)
+
   const { data: sessionData } = await supabase.auth.getSession()
   const token = sessionData?.session?.access_token
+
+  console.log('[createHospitalAdmin] Token exists:', !!token)
   if (!token) throw new Error('Not authenticated')
 
-  const res = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-hospital-admin`,
-    {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        hospitalId: data.hospitalId,
-        email: data.email,
-        name: data.name,
-        password: data.password,
-      }),
-    }
-  )
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-hospital-admin`
+  console.log('[createHospitalAdmin] Calling Edge Function:', url)
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      hospitalId: data.hospitalId,
+      email: data.email,
+      name: data.name,
+      password: data.password,
+    }),
+  })
+
+  console.log('[createHospitalAdmin] Response status:', res.status)
+  console.log('[createHospitalAdmin] Response ok:', res.ok)
 
   const result = await res.json()
-  if (!result.success) throw new Error(result.error ?? 'Failed to create admin')
+  console.log('[createHospitalAdmin] Response body:', result)
+
+  if (!result.success) {
+    console.error('[createHospitalAdmin] Edge Function returned failure:', result.error)
+    throw new Error(result.error ?? 'Failed to create admin')
+  }
+
+  console.log('[createHospitalAdmin] Success! Admin created:', result.admin)
   return result.admin
 }
 

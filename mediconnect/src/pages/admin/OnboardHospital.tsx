@@ -59,7 +59,11 @@ export function OnboardHospitalPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true)
         try {
+            console.log('=== STARTING HOSPITAL CREATION ===')
+            console.log('Form values:', values)
+
             // 1. Create the hospital
+            console.log('Step 1: Creating hospital...')
             const hospital = await createHospital({
                 name: values.name,
                 city: values.city,
@@ -70,14 +74,25 @@ export function OnboardHospitalPage() {
             })
 
             if (!hospital) throw new Error('Failed to create hospital')
+            console.log('Hospital created successfully:', hospital)
 
             // 2. Create the admin user linked to this hospital
-            await createHospitalAdmin({
+            console.log('Step 2: Creating hospital admin...')
+            console.log('Admin data:', {
+                hospitalId: hospital.id,
+                email: values.adminEmail,
+                name: values.adminName,
+            })
+
+            const admin = await createHospitalAdmin({
                 hospitalId: hospital.id,
                 email: values.adminEmail,
                 name: values.adminName,
                 password: values.adminPassword,
             })
+
+            console.log('Hospital admin created successfully:', admin)
+            console.log('=== HOSPITAL CREATION COMPLETE ===')
 
             toast({
                 title: "Hospital Onboarded",
@@ -86,7 +101,10 @@ export function OnboardHospitalPage() {
 
             navigate('/admin/hospitals')
         } catch (error: any) {
-            console.error('Onboarding error:', error)
+            console.error('=== ONBOARDING ERROR ===')
+            console.error('Error details:', error)
+            console.error('Error message:', error.message)
+            console.error('Error stack:', error.stack)
             toast({
                 title: "Error",
                 description: error.message || "Failed to onboard hospital. Please try again.",
