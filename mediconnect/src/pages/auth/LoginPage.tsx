@@ -39,19 +39,8 @@ export function LoginPage() {
       return
     }
 
-    // Check if super admin
-    const { data: superAdmin } = await supabase
-      .from('super_admins')
-      .select('role')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle()
-
-    if (superAdmin) {
-      navigate('/admin/dashboard', { replace: true })
-    } else {
-      navigate('/hms/dashboard', { replace: true })
-    }
+    // Navigate to redirect page which will determine role and redirect appropriately
+    navigate('/redirect', { replace: true })
   }
 
   return (

@@ -371,20 +371,30 @@ export interface CreateHospitalAdminData {
 }
 
 export async function createHospitalAdmin(data: CreateHospitalAdminData) {
-  // Uses RPC function to create admin user directly in DB (bypass Edge Function)
-  const { data: result, error } = await supabase.rpc('create_hospital_admin_db', {
-    hospital_id: data.hospitalId,
-    email: data.email,
-    name: data.name,
-    password: data.password,
-  })
+  const { data: sessionData } = await supabase.auth.getSession()
+  const token = sessionData?.session?.access_token
+  if (!token) throw new Error('Not authenticated')
 
-  if (error) throw error
-  if (!result || !result.success) {
-    throw new Error(result?.error || 'Failed to create admin user')
-  }
+  const res = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-hospital-admin`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        hospitalId: data.hospitalId,
+        email: data.email,
+        name: data.name,
+        password: data.password,
+      }),
+    }
+  )
 
-  return { id: result.user_id, email: data.email, name: data.name }
+  const result = await res.json()
+  if (!result.success) throw new Error(result.error ?? 'Failed to create admin')
+  return result.admin
 }
 
 // ─── Analytics ────────────────────────────────────────────────────────────────

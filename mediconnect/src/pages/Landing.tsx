@@ -15,7 +15,7 @@ export function LandingPage() {
                     <Link to="/login">Hospital Login</Link>
                 </Button>
                 <Button asChild variant="outline" size="lg">
-                    <Link to="/admin">Super Admin</Link>
+                    <Link to="/login">Super Admin</Link>
                 </Button>
             </div>
         </div>

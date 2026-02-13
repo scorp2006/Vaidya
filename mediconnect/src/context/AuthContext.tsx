@@ -32,46 +32,69 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   })
 
   async function loadProfile(user: User): Promise<Partial<AuthState>> {
-    // Check super_admin first
-    const { data: superAdmin } = await supabase
-      .from('super_admins')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle()
+    try {
+      // Add timeout to prevent infinite hanging from RLS recursion
+      const timeoutPromise = new Promise<Partial<AuthState>>((_, reject) =>
+        setTimeout(() => reject(new Error('Profile load timeout')), 5000)
+      )
 
-    if (superAdmin) {
-      // Update last_login_at
-      await supabase
-        .from('super_admins')
-        .update({ last_login_at: new Date().toISOString() })
-        .eq('user_id', user.id)
+      const loadPromise = (async () => {
+        // Check super_admin first
+        const { data: superAdmin, error: superAdminError } = await supabase
+          .from('super_admins')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle()
 
-      return { role: 'super_admin', profile: superAdmin, hospitalId: null }
+        if (superAdminError) {
+          console.error('Error loading super admin:', superAdminError)
+        }
+
+        if (superAdmin) {
+          // Update last_login_at
+          await supabase
+            .from('super_admins')
+            .update({ last_login_at: new Date().toISOString() })
+            .eq('user_id', user.id)
+
+          return { role: 'super_admin' as UserRole, profile: superAdmin, hospitalId: null }
+        }
+
+        // Check hospital_admin
+        const { data: hospitalAdmin, error: hospitalAdminError } = await supabase
+          .from('hospital_admins')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle()
+
+        if (hospitalAdminError) {
+          console.error('Error loading hospital admin:', hospitalAdminError)
+        }
+
+        if (hospitalAdmin) {
+          await supabase
+            .from('hospital_admins')
+            .update({ last_login_at: new Date().toISOString() })
+            .eq('user_id', user.id)
+
+          return {
+            role: 'hospital_admin' as UserRole,
+            profile: hospitalAdmin,
+            hospitalId: hospitalAdmin.hospital_id,
+          }
+        }
+
+        return { role: null, profile: null, hospitalId: null }
+      })()
+
+      return await Promise.race([loadPromise, timeoutPromise])
+    } catch (error) {
+      console.error('Profile load failed:', error)
+      // Return null role if there's an error or timeout
+      return { role: null, profile: null, hospitalId: null }
     }
-
-    // Check hospital_admin
-    const { data: hospitalAdmin } = await supabase
-      .from('hospital_admins')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .maybeSingle()
-
-    if (hospitalAdmin) {
-      await supabase
-        .from('hospital_admins')
-        .update({ last_login_at: new Date().toISOString() })
-        .eq('user_id', user.id)
-
-      return {
-        role: 'hospital_admin',
-        profile: hospitalAdmin,
-        hospitalId: hospitalAdmin.hospital_id,
-      }
-    }
-
-    return { role: null, profile: null, hospitalId: null }
   }
 
   useEffect(() => {

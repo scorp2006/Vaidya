@@ -12,6 +12,7 @@ import { SuperAdminLayout } from '@/components/admin/SuperAdminLayout'
 import { LandingPage } from '@/pages/Landing'
 import { LoginPage } from '@/pages/auth/LoginPage'
 import { RegisterPage } from '@/pages/auth/RegisterPage'
+import { RedirectPage } from '@/pages/auth/RedirectPage'
 import { UnauthorizedPage } from '@/pages/auth/UnauthorizedPage'
 
 // HMS Pages
@@ -38,6 +39,7 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/redirect" element={<RedirectPage />} />
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
             {/* HMS Routes (Hospital Admin) */}

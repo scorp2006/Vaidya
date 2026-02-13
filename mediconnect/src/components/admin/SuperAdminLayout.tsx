@@ -2,6 +2,7 @@ import { Link, Outlet, useLocation } from 'react-router-dom'
 import { LayoutDashboard, Building2, Settings, LogOut, ShieldCheck } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/context/AuthContext'
 
 const sidebarItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/admin/dashboard' },
@@ -11,6 +12,7 @@ const sidebarItems = [
 
 export function SuperAdminLayout() {
     const location = useLocation()
+    const { signOut } = useAuth()
 
     return (
         <div className="min-h-screen bg-slate-50 flex">
@@ -51,6 +53,7 @@ export function SuperAdminLayout() {
                     <Button
                         variant="ghost"
                         className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800 gap-3"
+                        onClick={() => signOut()}
                     >
                         <LogOut className="h-4 w-4" />
                         Sign Out
